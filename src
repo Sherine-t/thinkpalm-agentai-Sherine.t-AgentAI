@@ -1,0 +1,60 @@
+"""
+Minimal Python ReAct agent for Google Colab.
+Flow: user query -> reasoning -> tool call -> final answer
+"""
+
+import re
+
+
+def calculator(expression: str) -> str:
+    """Tiny safe calculator for demo purposes."""
+    if not re.fullmatch(r"[0-9+\-*/(). ]+", expression):
+        raise ValueError("Only basic arithmetic is allowed.")
+    return str(eval(expression, {"__builtins__": {}}, {}))
+
+
+class MinimalReActAgent:
+    def __init__(self, tools: dict):
+        self.tools = tools
+
+    def run(self, query: str) -> str:
+        print(f"User Query: {query}\n")
+
+        # Step 1: Reason
+        print("Thought 1: I should identify whether the question needs a tool.")
+        needs_math = any(ch.isdigit() for ch in query) and any(op in query for op in "+-*/")
+        print(f"Thought 2: Tool needed = {needs_math}")
+
+        # Step 2: Tool call
+        if needs_math:
+            expression = self._extract_expression(query)
+            print(f"Action: calculator[{expression}]")
+            observation = self.tools["calculator"](expression)
+            print(f"Observation: {observation}")
+            final = f"The answer is {observation}."
+        else:
+            print("Action: none")
+            print("Observation: No external tool needed.")
+            final = "I can answer directly without using a tool."
+
+        # Step 3: Final answer
+        print(f"\nFinal Answer: {final}")
+        return final
+
+    def _extract_expression(self, query: str) -> str:
+        allowed = "0123456789+-*/(). "
+        expr = "".join(ch for ch in query if ch in allowed).strip()
+        if not expr:
+            raise ValueError("No arithmetic expression found.")
+        return expr
+
+
+if __name__ == "__main__":
+    agent = MinimalReActAgent(
+        tools={
+            "calculator": calculator
+        }
+    )
+
+    # Demo query
+    agent.run("What is (12 + 8) * 3?")
